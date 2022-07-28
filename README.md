@@ -3,7 +3,8 @@ Exports prometheus stats about the tribes community.
 
 | Stat | Description |
 | --- | --- |
-|`player_count{server="<server_name>"}` | Number of players in each community server (ta.kfk4ever.com)
+|`player_count{server="<server_name>"}` | Number of players in each community server (ta.kfk4ever.com) |
+| `lobby_count` | Number of players waiting in lobby |
 
 Currently updates every minute.
 
@@ -12,7 +13,7 @@ Currently updates every minute.
 
 docker build . -t tribes-exporter
 
-docker buildx build --platform linux/arm64,linux/amd64 --tag <registry/>tribes-exporter --push .
+docker buildx build --platform linux/arm64,linux/amd64 --tag <registry>/tribes-exporter --push .
 ```
 
 ## Run
