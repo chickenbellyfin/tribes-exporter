@@ -10,17 +10,13 @@ lobby_count = Gauge('lobby_count', '')
 def update_stats():
   response = requests.get('http://ta.kfk4ever.com:9080/detailed_status').json()
 
-  in_server = set()
+  not_in_lobby = set(['taserverbot'])
   for server in response['online_servers_list']:
+    not_in_lobby.update(server['players'])
     if server['name'] is not None:
-      for player in server['players']:
-        in_server.add(player)
       player_count.labels(server['name']).set(len(server['players']))
 
-  online_players = set(response['online_players_list'])
-  online_players.remove('taserverbot')
-  lobby_count.set(len(online_players - in_server))
-
+  lobby_count.set(len(set(response['online_players_list']) - not_in_lobby))
 
 def main():
   schedule.every(1).minutes.do(update_stats)
