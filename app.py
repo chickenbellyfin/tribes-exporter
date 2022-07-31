@@ -8,6 +8,7 @@ player_count = Gauge('player_count', '', ['server'])
 lobby_count = Gauge('lobby_count', '')
 
 def update_stats():
+  player_count.clear()
   response = requests.get('http://ta.kfk4ever.com:9080/detailed_status').json()
 
   not_in_lobby = set(['taserverbot'])
