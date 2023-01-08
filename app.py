@@ -4,43 +4,48 @@ import time
 import requests
 from prometheus_client import Gauge, start_http_server
 
-INTERVAL_SECS = 60
 player_count = Gauge('player_count', '', ['server', 'loginserver'])
 lobby_count = Gauge('lobby_count', '', ['loginserver'])
 
-sources = [
-  ('community', 'http://ta.kfk4ever.com:9080/detailed_status'),
-  ('llamagrab', 'http://llamagrab.net:9080/detailed_status')
-]
+loginservers = {
+  'community': 'http://ta.kfk4ever.com:9080/detailed_status',
+  'llamagrab': 'http://llamagrab.net:9080/detailed_status'
+}
 
-def loop():
+
+def loop(interval_secs=60):
   while True:
     start = time.time()
-    player_count.clear()
-    for source in sources:
+
+    statuses = {}
+    for loginserver, url in loginservers.items():
       try:
-        update_stats(*source)
+        statuses[loginserver] = requests.get(url).json()
       except Exception as e:
         print(f"{e}")
-    time.sleep(max(0, INTERVAL_SECS - (time.time() - start)))
+    
+    player_count.clear()
+    for loginserver, status in statuses.items():
+      update_stats(loginserver, status)
+
+    time.sleep(max(0, interval_secs - (time.time() - start)))
 
 
-def update_stats(loginserver, url):
-  response = requests.get(url).json()
+def update_stats(loginserver, detailed_status):
   not_in_lobby = set(['taserverbot'])
-  for server in response['online_servers_list']:
+  for server in detailed_status['online_servers_list']:
     not_in_lobby.update(server['players'])
     if server['name'] is not None:
       player_count.labels(server['name'], loginserver).set(len(server['players']))
+  
+  lobby_count.labels(loginserver).set(len(set(detailed_status['online_players_list']) - not_in_lobby))
 
-  lobby_count.labels(loginserver).set(len(set(response['online_players_list']) - not_in_lobby))
 
 def main():
-  threading.Thread(target=loop).start()
   start_http_server(8080)
-
-  while True:
-    time.sleep(3600)
+  thread = threading.Thread(target=loop)
+  thread.start()
+  thread.join()
 
 if __name__ == '__main__':
   main()
